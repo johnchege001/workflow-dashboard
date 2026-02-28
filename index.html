@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>n8n Workflow Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg:#f5f4f0; --surface:#fff; --surface2:#f9f8f5;
+    --border:#e8e5de; --border2:#d4d0c8;
+    --text:#1a1916; --text2:#6b6760; --text3:#9c9890;
+    --green:#1a7a4a; --green-bg:#eaf5ef;
+    --red:#c0392b; --red-bg:#fdf0ee;
+    --amber:#b45309; --amber-bg:#fef3e2;
+    --blue:#1d4ed8; --blue-bg:#eff6ff;
+    --accent:#1a1916;
+    --radius:12px; --radius-sm:8px;
+    --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+    --shadow-lg:0 8px 32px rgba(0,0,0,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+
+  /* ── AUTH SCREENS ── */
+  .auth-screen{min-height:100vh;display:none;align-items:center;justify-content:center;background:var(--bg);padding:24px}
+  .auth-screen.active{display:flex}
+
+  .auth-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:44px;width:100%;max-width:420px;box-shadow:var(--shadow-lg)}
+
+  .auth-logo{width:44px;height:44px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:22px}
+  .auth-logo svg{width:22px;height:22px}
+  .auth-title{font-size:21px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px}
+  .auth-sub{font-size:13px;color:var(--text3);margin-bottom:28px;font-family:'DM Mono',monospace}
+
+  .form-group{margin-bottom:14px}
+  .form-label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+  .form-input{width:100%;padding:10px 13px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:'Sora',sans-serif;font-size:14px;color:var(--text);background:var(--surface);outline:none;transition:border-color .15s,box-shadow .15s}
+  .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,25,22,.08)}
+
+  .btn-primary{width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-primary:hover{opacity:.85}
+  .btn-primary:disabled{opacity:.45;cursor:not-allowed}
+
+  .btn-ghost{width:100%;padding:10px;background:none;color:var(--text2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;margin-top:8px;transition:background .1s}
+  .btn-ghost:hover{background:var(--surface2)}
+
+  .btn-link{background:none;border:none;color:var(--blue);font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;padding:0;text-decoration:underline}
+  .btn-link:hover{opacity:.8}
+
+  .auth-footer{text-align:center;margin-top:20px;font-size:13px;color:var(--text3)}
+  .auth-footer button{color:var(--blue);background:none;border:none;font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;font-weight:500}
+  .auth-footer button:hover{text-decoration:underline}
+
+  .alert{border-radius:var(--radius-sm);padding:10px 13px;font-size:13px;margin-top:12px;display:none}
+  .alert.show{display:block}
+  .alert.error{background:var(--red-bg);border:1px solid #f5c6c3;color:var(--red)}
+  .alert.success{background:var(--green-bg);border:1px solid #a7f3d0;color:var(--green)}
+  .alert.info{background:var(--blue-bg);border:1px solid #bfdbfe;color:var(--blue)}
+
+  /* OTP INPUT */
+  .otp-wrap{display:flex;gap:10px;justify-content:center;margin:20px 0}
+  .otp-digit{width:52px;height:58px;text-align:center;font-size:24px;font-weight:700;font-family:'DM Mono',monospace;border:1.5px solid var(--border2);border-radius:var(--radius-sm);outline:none;transition:border-color .15s,box-shadow .15s;background:var(--surface)}
+  .otp-digit:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,25,22,.08)}
+  .otp-digit.filled{border-color:var(--accent)}
+
+  .resend-row{text-align:center;font-size:12px;color:var(--text3);margin-top:4px}
+  .resend-row button{color:var(--blue);background:none;border:none;font-size:12px;font-family:'Sora',sans-serif;cursor:pointer}
+  .resend-row button:disabled{color:var(--text3);cursor:not-allowed;text-decoration:none}
+
+  /* spinner */
+  .spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+  .btn-primary.loading .spinner{display:block}
+  .btn-primary.loading .btn-label{display:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* password strength */
+  .pw-strength{height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
+  .pw-strength-fill{height:100%;border-radius:2px;transition:width .3s,background .3s}
+
+  /* ── APP ── */
+  .app-screen{display:none}
+  .app-screen.visible{display:block}
+
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .header-left{display:flex;align-items:center;gap:12px}
+  .logo{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .logo svg{width:18px;height:18px}
+  .header-title{font-size:15px;font-weight:600;letter-spacing:-.3px}
+  .header-subtitle{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace}
+  .header-right{display:flex;align-items:center;gap:14px}
+
+  .user-chip{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:20px}
+  .user-avatar{width:22px;height:22px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+  .user-name{font-size:12px;font-weight:500}
+  .user-role-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:.4px}
+
+  .role-badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.4px}
+  .role-cto{background:#1a1916;color:#fff}
+  .role-admin{background:#1d4ed8;color:#fff}
+  .role-manager{background:#b45309;color:#fff}
+  .role-developer{background:#1a7a4a;color:#fff}
+
+  .refresh-indicator{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);font-family:'DM Mono',monospace}
+  .pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
+  .last-updated{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
+
+  .btn-refresh{display:flex;align-items:center;gap:6px;padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:12px;font-family:'Sora',sans-serif;font-weight:500;cursor:pointer;transition:opacity .15s}
+  .btn-refresh:hover{opacity:.85}
+  .btn-refresh svg{width:13px;height:13px}
+  .btn-refresh.spinning svg{animation:spin .7s linear infinite}
+
+  .btn-logout{display:flex;align-items:center;gap:5px;padding:6px 12px;background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;font-family:'Sora',sans-serif;color:var(--text3);cursor:pointer;transition:background .1s,color .1s}
+  .btn-logout:hover{background:var(--red-bg);color:var(--red);border-color:#f5c6c3}
+  .btn-logout svg{width:13px;height:13px}
+
+  .main{padding:28px 32px;max-width:1400px;margin:0 auto}
+  .owner-banner{background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:var(--radius-sm);padding:10px 16px;font-size:12px;color:var(--blue);margin-bottom:20px;display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace}
+  .owner-banner.hidden{display:none}
+
+  .stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s}
+  .stat-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg)}
+  .stat-label{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+  .stat-value{font-size:28px;font-weight:700;letter-spacing:-1px;line-height:1;margin-bottom:4px}
+  .stat-sub{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
+  .stat-card.green .stat-value{color:var(--green)}
+  .stat-card.red .stat-value{color:var(--red)}
+  .stat-card.amber .stat-value{color:var(--amber)}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .card-title{font-size:13px;font-weight:600;letter-spacing:-.2px}
+  .card-badge{font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);background:var(--surface2);border:1px solid var(--border);padding:2px 8px;border-radius:20px}
+  .card-body{padding:20px}
+  .card-body-flush{padding:0}
+
+  .data-table{width:100%;border-collapse:collapse;font-size:13px}
+  .data-table th{text-align:left;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:10px 20px;background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap}
+  .data-table td{padding:12px 20px;border-bottom:1px solid var(--border);vertical-align:middle}
+  .data-table tbody tr:last-child td{border-bottom:none}
+  .data-table tbody tr{cursor:pointer;transition:background .1s}
+  .data-table tbody tr:hover{background:var(--surface2)}
+
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;font-family:'DM Mono',monospace;white-space:nowrap}
+  .badge-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+  .badge.success{background:var(--green-bg);color:var(--green)}
+  .badge.success .badge-dot{background:var(--green)}
+  .badge.error{background:var(--red-bg);color:var(--red)}
+  .badge.error .badge-dot{background:var(--red)}
+  .badge.active{background:var(--green-bg);color:var(--green)}
+  .badge.inactive{background:var(--border);color:var(--text3)}
+  .badge.info{background:var(--blue-bg);color:var(--blue)}
+
+  .progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:4px}
+  .progress-fill{height:100%;border-radius:2px;transition:width .5s ease}
+  .progress-fill.green{background:var(--green)}
+  .progress-fill.red{background:var(--red)}
+
+  .mono{font-family:'DM Mono',monospace;font-size:12px}
+  .chart-container{position:relative;height:200px}
+
+  .donut-wrap{display:flex;align-items:center;gap:24px}
+  .donut-container{position:relative;width:140px;height:140px;flex-shrink:0}
+  .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+  .donut-center-val{font-size:22px;font-weight:700;letter-spacing:-1px}
+  .donut-center-label{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace}
+  .donut-legend{display:flex;flex-direction:column;gap:10px;flex:1}
+  .legend-item{display:flex;align-items:center;gap:8px}
+  .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .legend-label{font-size:12px;color:var(--text2)}
+  .legend-val{font-size:13px;font-weight:600;margin-left:auto;font-family:'DM Mono',monospace}
+
+  .wf-name{font-weight:500;font-size:13px}
+  .wf-link{font-size:11px;color:var(--blue);text-decoration:none;font-family:'DM Mono',monospace;display:inline-flex;align-items:center;gap:3px}
+  .wf-link:hover{text-decoration:underline}
+
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(26,25,22,.5);z-index:200;padding:40px;overflow-y:auto;backdrop-filter:blur(2px)}
+  .modal-overlay.open{display:flex;align-items:flex-start;justify-content:center}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:760px;box-shadow:var(--shadow-lg);animation:slideUp .2s ease}
+  @keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .modal-title{font-size:16px;font-weight:600;letter-spacing:-.3px}
+  .modal-id{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px}
+  .btn-close{width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .1s}
+  .btn-close:hover{background:var(--surface2)}
+  .btn-close svg{width:14px;height:14px}
+  .modal-body{padding:24px}
+
+  .modal-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .modal-stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
+  .modal-stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-weight:500}
+  .modal-stat-value{font-size:18px;font-weight:700;letter-spacing:-.5px}
+  .modal-stat-value.green{color:var(--green)}
+  .modal-stat-value.red{color:var(--red)}
+
+  .modal-section-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:10px}
+  .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+  .meta-item{display:flex;flex-direction:column;gap:2px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)}
+  .meta-key{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+  .meta-val{font-size:13px;font-weight:500}
+  .meta-val a{color:var(--blue);text-decoration:none;font-family:'DM Mono',monospace;font-size:12px}
+  .meta-val a:hover{text-decoration:underline}
+
+  .section-divider{height:1px;background:var(--border);margin:20px 0}
+  .error-item{padding:12px 14px;background:var(--red-bg);border:1px solid #f5c6c3;border-radius:var(--radius-sm);margin-bottom:8px;font-size:12px}
+  .error-item-header{display:flex;justify-content:space-between;margin-bottom:4px}
+  .error-node-lbl{font-weight:600;color:var(--red);font-family:'DM Mono',monospace}
+  .error-time{color:var(--text3);font-family:'DM Mono',monospace}
+  .error-msg{color:var(--text2)}
+  .error-type-lbl{color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace}
+
+  .empty-state{text-align:center;padding:32px 20px;color:var(--text3);font-size:13px}
+  .empty-icon{font-size:28px;margin-bottom:8px}
+
+  [data-tooltip]{position:relative}
+  [data-tooltip]:hover::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-size:11px;padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:300;pointer-events:none}
+
+  .countdown-bar{height:2px;background:var(--border);position:fixed;top:60px;left:0;right:0;z-index:99}
+  .countdown-fill{height:100%;background:var(--green);transition:width 1s linear}
+
+  @media(max-width:1100px){.stats-row{grid-template-columns:repeat(3,1fr)}.grid-2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     SCREEN 1 — SIGN IN
+═══════════════════════════════════════ -->
+<div class="auth-screen active" id="screenSignIn">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </div>
+    <div class="auth-title">Welcome back</div>
+    <div class="auth-sub">n8n · Workflow Monitor</div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="siEmail" placeholder="you@company.com" autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="siPassword" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <div style="text-align:right;margin-top:-6px;margin-bottom:10px">
+      <button class="btn-link" onclick="show('screenForgot')">Forgot password?</button>
+    </div>
+    <button class="btn-primary" id="btnSignIn" onclick="doSignIn()">
+      <div class="spinner"></div><span class="btn-label">Sign In</span>
+    </button>
+    <div class="alert error" id="siError"></div>
+    <div class="auth-footer">Don't have an account? <button onclick="show('screenSignUp')">Create one</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 2 — SIGN UP
+═══════════════════════════════════════ -->
+<div class="auth-screen" id="screenSignUp">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </div>
+    <div class="auth-title">Create account</div>
+    <div class="auth-sub">n8n · Workflow Monitor</div>
+    <div class="form-group">
+      <label class="form-label">Full Name</label>
+      <input class="form-input" type="text" id="suName" placeholder="Jane Smith"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="suEmail" placeholder="you@company.com" autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="suPassword" placeholder="Min. 8 characters" oninput="checkPwStrength(this.value)" autocomplete="new-password"/>
+      <div class="pw-strength"><div class="pw-strength-fill" id="pwFill" style="width:0%"></div></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirm Password</label>
+      <input class="form-input" type="password" id="suPassword2" placeholder="••••••••" autocomplete="new-password"/>
+    </div>
+    <button class="btn-primary" id="btnSignUp" onclick="doSignUp()">
+      <div class="spinner"></div><span class="btn-label">Create Account</span>
+    </button>
+    <div class="alert error" id="suError"></div>
+    <div class="auth-footer">Already have an account? <button onclick="show('screenSignIn')">Sign in</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 3 — CONFIRM EMAIL (OTP)
+═══════════════════════════════════════ -->
+<div class="auth-screen" id="screenConfirm">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.05 1.18 2 2 0 012 .02h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+    </div>
+    <div class="auth-title">Check your email</div>
+    <div class="auth-sub" id="confirmSubtitle">Enter the 6-digit code sent to your email</div>
+    <div class="otp-wrap" id="otpWrap">
+      <input class="otp-digit" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,0)" onkeydown="otpKey(event,0)"/>
+      <input class="otp-digit" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,1)" onkeydown="otpKey(event,1)"/>
+      <input class="otp-digit" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,2)" onkeydown="otpKey(event,2)"/>
+      <input class="otp-digit" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,3)" onkeydown="otpKey(event,3)"/>
+      <input class="otp-digit" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,4)" onkeydown="otpKey(event,4)"/>
+      <input class="otp-digit" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,5)" onkeydown="otpKey(event,5)"/>
+    </div>
+    <button class="btn-primary" id="btnConfirm" onclick="doConfirmOTP()">
+      <div class="spinner"></div><span class="btn-label">Verify Code</span>
+    </button>
+    <div class="alert error" id="confirmError"></div>
+    <div class="alert success" id="confirmSuccess"></div>
+    <div class="resend-row" style="margin-top:14px">
+      Didn't receive it? <button id="btnResend" onclick="doResendCode()">Resend code</button>
+      <span id="resendCountdown"></span>
+    </div>
+    <div class="auth-footer"><button onclick="show('screenSignIn')">← Back to sign in</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 4 — FORGOT PASSWORD
+═══════════════════════════════════════ -->
+<div class="auth-screen" id="screenForgot">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    </div>
+    <div class="auth-title">Forgot password?</div>
+    <div class="auth-sub">We'll send a reset code to your email</div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="fpEmail" placeholder="you@company.com"/>
+    </div>
+    <button class="btn-primary" id="btnForgot" onclick="doForgot()">
+      <div class="spinner"></div><span class="btn-label">Send Reset Code</span>
+    </button>
+    <div class="alert error" id="fpError"></div>
+    <div class="alert success" id="fpSuccess"></div>
+    <div class="auth-footer"><button onclick="show('screenSignIn')">← Back to sign in</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 5 — RESET PASSWORD
+═══════════════════════════════════════ -->
+<div class="auth-screen" id="screenReset">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    </div>
+    <div class="auth-title">Set new password</div>
+    <div class="auth-sub">Enter the code from your email and your new password</div>
+    <div class="otp-wrap" id="resetOtpWrap">
+      <input class="otp-digit" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,0,'reset')" onkeydown="otpKey(event,0,'reset')"/>
+      <input class="otp-digit" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,1,'reset')" onkeydown="otpKey(event,1,'reset')"/>
+      <input class="otp-digit" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,2,'reset')" onkeydown="otpKey(event,2,'reset')"/>
+      <input class="otp-digit" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,3,'reset')" onkeydown="otpKey(event,3,'reset')"/>
+      <input class="otp-digit" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,4,'reset')" onkeydown="otpKey(event,4,'reset')"/>
+      <input class="otp-digit" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,5,'reset')" onkeydown="otpKey(event,5,'reset')"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">New Password</label>
+      <input class="form-input" type="password" id="rpPassword" placeholder="Min. 8 characters" oninput="checkPwStrength(this.value,'rpFill')" autocomplete="new-password"/>
+      <div class="pw-strength"><div class="pw-strength-fill" id="rpFill" style="width:0%"></div></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirm New Password</label>
+      <input class="form-input" type="password" id="rpPassword2" placeholder="••••••••" autocomplete="new-password"/>
+    </div>
+    <button class="btn-primary" id="btnReset" onclick="doReset()">
+      <div class="spinner"></div><span class="btn-label">Reset Password</span>
+    </button>
+    <div class="alert error" id="rpError"></div>
+    <div class="alert success" id="rpSuccess"></div>
+    <div class="auth-footer"><button onclick="show('screenSignIn')">← Back to sign in</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     APP
+═══════════════════════════════════════ -->
+<div class="app-screen" id="appScreen">
+  <div class="countdown-bar"><div class="countdown-fill" id="countdownFill" style="width:100%"></div></div>
+  <header class="header">
+    <div class="header-left">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      <div><div class="header-title">Workflow Monitor</div><div class="header-subtitle">n8n · Team Dashboard</div></div>
+    </div>
+    <div class="header-right">
+      <div class="refresh-indicator"><div class="pulse-dot"></div><span>Live</span></div>
+      <div class="last-updated" id="lastUpdated">—</div>
+      <button class="btn-refresh" id="btnRefresh" onclick="loadAll()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        Refresh
+      </button>
+      <div class="user-chip">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div><div class="user-name" id="userName">—</div><div class="user-role-label" id="userRoleLabel">—</div></div>
+        <span class="role-badge" id="roleBadge">—</span>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </button>
+    </div>
+  </header>
+  <main class="main">
+    <div class="owner-banner hidden" id="ownerBanner">🔒 Showing only workflows where you are listed as the owner. Contact an Admin to update ownership.</div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Total Workflows</div><div class="stat-value" id="statTotal">—</div><div class="stat-sub" id="statActive">— active</div></div>
+      <div class="stat-card green"><div class="stat-label">Total Runs</div><div class="stat-value" id="statRuns">—</div><div class="stat-sub">all time</div></div>
+      <div class="stat-card green"><div class="stat-label">Success Rate</div><div class="stat-value" id="statSuccessRate">—</div><div class="stat-sub">across workflows</div></div>
+      <div class="stat-card red"><div class="stat-label">Total Errors</div><div class="stat-value" id="statErrors">—</div><div class="stat-sub">all time</div></div>
+      <div class="stat-card amber"><div class="stat-label">Recent Errors</div><div class="stat-value" id="statRecentErrors">—</div><div class="stat-sub">last 24 hours</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Overall Health</div><span class="card-badge" id="healthBadge">—</span></div>
+        <div class="card-body">
+          <div class="donut-wrap">
+            <div class="donut-container">
+              <canvas id="donutChart"></canvas>
+              <div class="donut-center"><div class="donut-center-val" id="donutVal">—</div><div class="donut-center-label">success</div></div>
+            </div>
+            <div class="donut-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-label">Successful</div><div class="legend-val" id="legSuccess">—</div></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div><div class="legend-label">Has Errors</div><div class="legend-val" id="legErrors">—</div></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--border2)"></div><div class="legend-label">No Runs</div><div class="legend-val" id="legNoRuns">—</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Error Trend (30 days)</div><span class="card-badge" id="trendBadge">—</span></div>
+        <div class="card-body"><div class="chart-container"><canvas id="trendChart"></canvas></div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header"><div class="card-title">Workflows</div><span class="card-badge" id="wfCount">—</span></div>
+      <div class="card-body-flush">
+        <table class="data-table">
+          <thead><tr><th>Workflow</th><th>Owner</th><th>Status</th><th>Total Runs</th><th>Success / Error</th><th>Nodes</th><th>Last Run</th><th>Health</th></tr></thead>
+          <tbody id="wfTableBody"><tr><td colspan="8" class="empty-state"><div class="empty-icon">⚙️</div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Recent Errors</div><span class="card-badge" id="errorCount">—</span></div>
+      <div class="card-body-flush">
+        <table class="data-table">
+          <thead><tr><th>Workflow</th><th>Error Node</th><th>Error Type</th><th>Message</th><th>Time</th></tr></thead>
+          <tbody id="errorsTableBody"><tr><td colspan="5" class="empty-state"><div class="empty-icon">✅</div>No errors found</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="modalTitle">—</div><div class="modal-id" id="modalId">—</div></div>
+      <button class="btn-close" onclick="closeModalDirect()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──
+const SUPABASE_URL = 'https://jfezbrovapbucbjeyedk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZXpicm92YXBidWNiamV5ZWRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MjgwNjgsImV4cCI6MjA4NzIwNDA2OH0.i4vAaoY2tOttLrPBZNDtGQ8ZZQKUOPk3wxFLRWC_sp4';
+const EDGE_FN_URL = `${SUPABASE_URL}/functions/v1/resend-auth`;
+const REFRESH_SEC = 900;
+const ADMIN_ROLES = ['cto','admin'];
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let donutChart = null, trendChart = null, countdownInterval = null;
+let currentUser = null, currentProfile = null;
+let pendingEmail = '', pendingName = '', pendingType = 'confirm'; // confirm | reset
+let otpCodes = { confirm: '', reset: '' };
+let resendTimer = null;
+
+const isAdmin = () => currentProfile && ADMIN_ROLES.includes(currentProfile.role);
+
+// ── SCREEN ROUTER ──
+function show(id) {
+  document.querySelectorAll('.auth-screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+  // clear alerts on screen switch
+  document.querySelectorAll('.alert').forEach(a => { a.classList.remove('show'); a.textContent = ''; });
+}
+
+function showAlert(id, msg, type = 'error') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `alert ${type} show`;
+}
+
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.classList.toggle('loading', loading);
+  btn.disabled = loading;
+}
+
+// ── PASSWORD STRENGTH ──
+function checkPwStrength(val, fillId = 'pwFill') {
+  const fill = document.getElementById(fillId);
+  if (!fill) return;
+  let score = 0;
+  if (val.length >= 8) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const colors = ['#c0392b','#e67e22','#f1c40f','#1a7a4a'];
+  const widths = ['25%','50%','75%','100%'];
+  fill.style.width = score > 0 ? widths[score-1] : '0%';
+  fill.style.background = score > 0 ? colors[score-1] : 'transparent';
+}
+
+// ── OTP HELPERS ──
+function getOtpDigits(prefix = '') {
+  const wrap = document.getElementById(prefix ? 'resetOtpWrap' : 'otpWrap');
+  return Array.from(wrap.querySelectorAll('.otp-digit'));
+}
+
+function getOtpValue(prefix = '') {
+  return getOtpDigits(prefix).map(d => d.value).join('');
+}
+
+function clearOtp(prefix = '') {
+  getOtpDigits(prefix).forEach(d => { d.value = ''; d.classList.remove('filled'); });
+  const digits = getOtpDigits(prefix);
+  if (digits[0]) digits[0].focus();
+}
+
+function otpInput(el, idx, prefix = '') {
+  el.value = el.value.replace(/[^0-9]/g, '').slice(-1);
+  el.classList.toggle('filled', !!el.value);
+  const digits = getOtpDigits(prefix);
+  if (el.value && idx < 5) digits[idx + 1].focus();
+  // auto-submit when all filled
+  if (getOtpValue(prefix).length === 6) {
+    if (prefix === 'reset') doReset();
+    else doConfirmOTP();
+  }
+}
+
+function otpKey(e, idx, prefix = '') {
+  const digits = getOtpDigits(prefix);
+  if (e.key === 'Backspace' && !digits[idx].value && idx > 0) digits[idx - 1].focus();
+  if (e.key === 'ArrowLeft' && idx > 0) digits[idx - 1].focus();
+  if (e.key === 'ArrowRight' && idx < 5) digits[idx + 1].focus();
+}
+
+// handle paste into OTP
+document.addEventListener('paste', e => {
+  const active = document.querySelector('.auth-screen.active');
+  if (!active) return;
+  const digits = active.querySelectorAll('.otp-digit');
+  if (!digits.length) return;
+  const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+  if (!text) return;
+  e.preventDefault();
+  const isReset = active.id === 'screenReset';
+  text.split('').forEach((ch, i) => {
+    if (digits[i]) { digits[i].value = ch; digits[i].classList.add('filled'); }
+  });
+  if (text.length === 6) { if (isReset) doReset(); else doConfirmOTP(); }
+});
+
+// ── RESEND COUNTDOWN ──
+function startResendTimer(sec = 60) {
+  const btn = document.getElementById('btnResend');
+  const countdown = document.getElementById('resendCountdown');
+  if (btn) btn.disabled = true;
+  let t = sec;
+  if (resendTimer) clearInterval(resendTimer);
+  resendTimer = setInterval(() => {
+    t--;
+    if (countdown) countdown.textContent = ` (${t}s)`;
+    if (t <= 0) {
+      clearInterval(resendTimer);
+      if (btn) btn.disabled = false;
+      if (countdown) countdown.textContent = '';
+    }
+  }, 1000);
+}
+
+// ── GENERATE 6-DIGIT CODE & STORE IN DB ──
+function generateCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+async function storeCode(email, code, type) {
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  await sb.from('auth_codes').upsert({ email, code, type, expires_at: expiresAt, used: false }, { onConflict: 'email,type' });
+}
+
+async function verifyCode(email, code, type) {
+  const { data } = await sb.from('auth_codes')
+    .select('*')
+    .eq('email', email).eq('code', code).eq('type', type).eq('used', false)
+    .gte('expires_at', new Date().toISOString())
+    .single();
+  if (!data) return false;
+  await sb.from('auth_codes').update({ used: true }).eq('email', email).eq('type', type);
+  return true;
+}
+
+async function sendCodeEmail(email, code, type, name = '') {
+  await fetch(EDGE_FN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+    body: JSON.stringify({ type, email, code, name })
+  });
+}
+
+// ── SIGN UP ──
+async function doSignUp() {
+  const name = document.getElementById('suName').value.trim();
+  const email = document.getElementById('suEmail').value.trim();
+  const pw = document.getElementById('suPassword').value;
+  const pw2 = document.getElementById('suPassword2').value;
+
+  if (!name) return showAlert('suError', 'Please enter your full name.');
+  if (!email) return showAlert('suError', 'Please enter your email.');
+  if (pw.length < 8) return showAlert('suError', 'Password must be at least 8 characters.');
+  if (pw !== pw2) return showAlert('suError', 'Passwords do not match.');
+
+  setLoading('btnSignUp', true);
+  try {
+    // Create user in Supabase auth (email confirm disabled — we do our own)
+    const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { full_name: name }, emailRedirectTo: null } });
+    if (error) throw error;
+
+    // Generate & send confirmation code
+    const code = generateCode();
+    await storeCode(email, code, 'confirm');
+    await sendCodeEmail(email, code, 'confirm_email', name);
+
+    pendingEmail = email;
+    pendingName = name;
+    pendingType = 'confirm';
+    document.getElementById('confirmSubtitle').textContent = `Enter the 6-digit code sent to ${email}`;
+    clearOtp();
+    startResendTimer(60);
+    show('screenConfirm');
+  } catch (e) {
+    showAlert('suError', e.message || 'Sign up failed. Please try again.');
+  }
+  setLoading('btnSignUp', false);
+}
+
+// ── CONFIRM EMAIL OTP ──
+async function doConfirmOTP() {
+  const code = getOtpValue();
+  if (code.length < 6) return showAlert('confirmError', 'Please enter the full 6-digit code.');
+
+  setLoading('btnConfirm', true);
+  try {
+    const valid = await verifyCode(pendingEmail, code, 'confirm');
+    if (!valid) throw new Error('Invalid or expired code. Please try again.');
+
+    // Mark email as confirmed in profiles
+    await sb.from('profiles').update({ email_confirmed: true }).eq('email', pendingEmail);
+
+    showAlert('confirmSuccess', '✅ Email confirmed! Signing you in…', 'success');
+    setTimeout(async () => {
+      // Sign in automatically
+      const { data, error } = await sb.auth.signInWithPassword({ email: pendingEmail, password: '' });
+      // If auto sign-in fails (expected since we don't store pw here), just redirect to sign in
+      show('screenSignIn');
+      showAlert('siError', ''); // clear
+      document.getElementById('siEmail').value = pendingEmail;
+      // Show success info
+      setTimeout(() => {
+        const el = document.getElementById('siError');
+        el.className = 'alert success show';
+        el.textContent = '✅ Account confirmed! Please sign in.';
+      }, 100);
+    }, 1500);
+  } catch (e) {
+    showAlert('confirmError', e.message);
+    clearOtp();
+  }
+  setLoading('btnConfirm', false);
+}
+
+// ── RESEND CODE ──
+async function doResendCode() {
+  try {
+    const code = generateCode();
+    await storeCode(pendingEmail, code, pendingType);
+    await sendCodeEmail(pendingEmail, code, pendingType === 'confirm' ? 'confirm_email' : 'reset_password', pendingName);
+    showAlert('confirmSuccess', 'New code sent! Check your email.', 'success');
+    startResendTimer(60);
+  } catch (e) {
+    showAlert('confirmError', 'Failed to resend. Please try again.');
+  }
+}
+
+// ── SIGN IN ──
+async function doSignIn() {
+  const email = document.getElementById('siEmail').value.trim();
+  const pw = document.getElementById('siPassword').value;
+  if (!email || !pw) return showAlert('siError', 'Please enter your email and password.');
+  setLoading('btnSignIn', true);
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+    if (error) throw error;
+    await bootApp(data.user);
+  } catch (e) {
+    showAlert('siError', e.message || 'Sign in failed. Check your credentials.');
+    setLoading('btnSignIn', false);
+  }
+}
+
+// ── FORGOT PASSWORD ──
+async function doForgot() {
+  const email = document.getElementById('fpEmail').value.trim();
+  if (!email) return showAlert('fpError', 'Please enter your email.');
+  setLoading('btnForgot', true);
+  try {
+    // Check user exists
+    const { data: profile } = await sb.from('profiles').select('id').eq('email', email).single();
+    // Always show success to avoid email enumeration
+    const code = generateCode();
+    await storeCode(email, code, 'reset');
+    await sendCodeEmail(email, code, 'reset_password');
+    pendingEmail = email;
+    pendingType = 'reset';
+    showAlert('fpSuccess', `Reset code sent to ${email}`, 'success');
+    setTimeout(() => { clearOtp('reset'); show('screenReset'); }, 1500);
+  } catch (e) {
+    // Still show success
+    showAlert('fpSuccess', `If an account exists for ${document.getElementById('fpEmail').value}, a reset code was sent.`, 'success');
+  }
+  setLoading('btnForgot', false);
+}
+
+// ── RESET PASSWORD ──
+async function doReset() {
+  const code = getOtpValue('reset');
+  const pw = document.getElementById('rpPassword').value;
+  const pw2 = document.getElementById('rpPassword2').value;
+  if (code.length < 6) return showAlert('rpError', 'Please enter the 6-digit code.');
+  if (pw.length < 8) return showAlert('rpError', 'Password must be at least 8 characters.');
+  if (pw !== pw2) return showAlert('rpError', 'Passwords do not match.');
+  setLoading('btnReset', true);
+  try {
+    const valid = await verifyCode(pendingEmail, code, 'reset');
+    if (!valid) throw new Error('Invalid or expired code. Please try again.');
+    // Use Supabase admin to update password — via Edge Function or direct update
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if (error) throw error;
+    showAlert('rpSuccess', '✅ Password updated! Redirecting to sign in…', 'success');
+    setTimeout(() => { show('screenSignIn'); }, 2000);
+  } catch (e) {
+    showAlert('rpError', e.message || 'Failed to reset password.');
+    clearOtp('reset');
+  }
+  setLoading('btnReset', false);
+}
+
+// ── LOGOUT ──
+async function doLogout() {
+  clearInterval(countdownInterval);
+  await sb.auth.signOut();
+  currentUser = null; currentProfile = null;
+  document.getElementById('appScreen').classList.remove('visible');
+  show('screenSignIn');
+}
+
+// ── BOOT APP ──
+async function bootApp(user) {
+  currentUser = user;
+  const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  currentProfile = profile || { role: 'developer', full_name: user.user_metadata?.full_name || user.email.split('@')[0] };
+
+  const name = currentProfile.full_name || user.email.split('@')[0];
+  const role = currentProfile.role || 'developer';
+  document.getElementById('userName').textContent = name;
+  document.getElementById('userRoleLabel').textContent = role;
+  document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+  const rb = document.getElementById('roleBadge');
+  rb.textContent = role.toUpperCase();
+  rb.className = `role-badge role-${role}`;
+  document.getElementById('ownerBanner').classList.toggle('hidden', isAdmin());
+
+  // Hide all auth screens, show app
+  document.querySelectorAll('.auth-screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('appScreen').classList.add('visible');
+  await loadAll();
+}
+
+// ── ENTER KEY ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModalDirect();
+  if (e.key !== 'Enter') return;
+  const active = document.querySelector('.auth-screen.active');
+  if (!active) return;
+  const id = active.id;
+  if (id === 'screenSignIn') doSignIn();
+  else if (id === 'screenSignUp') doSignUp();
+  else if (id === 'screenForgot') doForgot();
+});
+
+// ── DATA LOAD ──
+async function loadAll() {
+  const btn = document.getElementById('btnRefresh');
+  btn.classList.add('spinning');
+  try {
+    const admin = isAdmin();
+    const ownerName = currentProfile?.full_name || '';
+    const ownerEmail = currentUser?.email || '';
+
+    let wfQ = sb.from('workflows').select('*').order('workflow_name', { ascending: true });
+    if (!admin) wfQ = wfQ.or(`"Workflow Owner".eq.${ownerName},"Workflow Owner".eq.${ownerEmail}`);
+    const { data: workflows, error: wfErr } = await wfQ;
+    if (wfErr) throw wfErr;
+
+    const wfIds = (workflows || []).map(w => w.workflow_id);
+    const noResults = !admin && wfIds.length === 0;
+
+    let errQ = sb.from('workflow_errors').select('*, workflows(workflow_name)').order('occurred_at', { ascending: false }).limit(50);
+    if (!admin && wfIds.length > 0) errQ = errQ.in('workflow_id', wfIds);
+    else if (noResults) errQ = errQ.eq('workflow_id', '__none__');
+    const { data: errors } = await errQ;
+
+    const cutoff30 = new Date(Date.now() - 30 * 86400000).toISOString();
+    let trendQ = sb.from('workflow_errors').select('occurred_at').gte('occurred_at', cutoff30);
+    if (!admin && wfIds.length > 0) trendQ = trendQ.in('workflow_id', wfIds);
+    else if (noResults) trendQ = trendQ.eq('workflow_id', '__none__');
+    const { data: trend } = await trendQ;
+
+    renderStats(workflows || [], errors || [], trend || []);
+    renderDonut(workflows || []);
+    renderTrend(trend || []);
+    renderWorkflows(workflows || []);
+    renderErrors(errors || []);
+    document.getElementById('lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`;
+  } catch(e) {
+    console.error(e);
+    document.getElementById('lastUpdated').textContent = 'Error loading data';
+  }
+  btn.classList.remove('spinning');
+  resetCountdown();
+}
+
+// ── HELPERS ──
+const fmt = d => {
+  if (!d) return '—';
+  const dt = new Date(d), now = new Date(), diff = (now - dt) / 1000;
+  if (diff < 60) return `${Math.floor(diff)}s ago`;
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+};
+const fmtFull = d => !d ? '—' : new Date(d).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+const pct = (a, b) => !b ? 0 : Math.round((a / b) * 100);
+const trunc = (s, n) => !s ? '—' : s.length > n ? s.slice(0, n) + '…' : s;
+
+// ── RENDER ──
+function renderStats(wf, errors, trend) {
+  const total = wf.length, active = wf.filter(w => w.is_active).length;
+  const runs = wf.reduce((a,w) => a+(w.total_runs||0), 0);
+  const succ = wf.reduce((a,w) => a+(w.successful_runs||0), 0);
+  const errs = wf.reduce((a,w) => a+(w.error_runs||0), 0);
+  const cutoff = new Date(Date.now()-86400000).toISOString();
+  const recent = trend.filter(e => e.occurred_at > cutoff).length;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statActive').textContent = `${active} active`;
+  document.getElementById('statRuns').textContent = runs.toLocaleString();
+  document.getElementById('statSuccessRate').textContent = `${pct(succ,runs)}%`;
+  document.getElementById('statErrors').textContent = errs.toLocaleString();
+  document.getElementById('statRecentErrors').textContent = recent;
+}
+
+function renderDonut(wf) {
+  const success = wf.filter(w => (w.successful_runs||0)>0 && (w.error_runs||0)===0).length;
+  const hasErr = wf.filter(w => (w.error_runs||0)>0).length;
+  const noRuns = wf.filter(w => (w.total_runs||0)===0).length;
+  const rate = pct(success, wf.length);
+  document.getElementById('donutVal').textContent = `${rate}%`;
+  document.getElementById('legSuccess').textContent = success;
+  document.getElementById('legErrors').textContent = hasErr;
+  document.getElementById('legNoRuns').textContent = noRuns;
+  document.getElementById('healthBadge').textContent = rate>=90?'🟢 Healthy':rate>=70?'🟡 Degraded':'🔴 Issues';
+  const ctx = document.getElementById('donutChart').getContext('2d');
+  const cd = { datasets:[{ data:[success,hasErr,noRuns], backgroundColor:['#1a7a4a','#c0392b','#d4d0c8'], borderWidth:0, hoverOffset:4 }] };
+  if (donutChart) { donutChart.data=cd; donutChart.update(); }
+  else donutChart = new Chart(ctx, { type:'doughnut', data:cd, options:{ cutout:'72%', plugins:{ legend:{display:false} }, animation:{duration:500} } });
+}
+
+function renderTrend(allErrors) {
+  const labels=[], counts=[], now=new Date();
+  for (let i=29;i>=0;i--) {
+    const d=new Date(now); d.setDate(d.getDate()-i);
+    const key=d.toISOString().slice(0,10);
+    labels.push(i===0?'Today':key.slice(5));
+    counts.push(allErrors.filter(e=>e.occurred_at?.slice(0,10)===key).length);
+  }
+  document.getElementById('trendBadge').textContent=`${counts.reduce((a,b)=>a+b,0)} total`;
+  const ctx=document.getElementById('trendChart').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,200);
+  grad.addColorStop(0,'rgba(192,57,43,.15)'); grad.addColorStop(1,'rgba(192,57,43,0)');
+  const cd={labels,datasets:[{data:counts,borderColor:'#c0392b',backgroundColor:grad,borderWidth:2,fill:true,tension:.35,pointRadius:0,pointHoverRadius:4}]};
+  if (trendChart) { trendChart.data=cd; trendChart.update(); }
+  else trendChart=new Chart(ctx,{type:'line',data:cd,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:6,font:{family:'DM Mono',size:10},color:'#9c9890'}},y:{beginAtZero:true,grid:{color:'#e8e5de'},ticks:{stepSize:1,font:{family:'DM Mono',size:10},color:'#9c9890'}}}}});
+}
+
+function renderWorkflows(workflows) {
+  document.getElementById('wfCount').textContent=`${workflows.length} workflow${workflows.length!==1?'s':''}`;
+  const tbody=document.getElementById('wfTableBody');
+  if (!workflows.length) { tbody.innerHTML=`<tr><td colspan="8" class="empty-state"><div class="empty-icon">⚙️</div>${isAdmin()?'No workflows found':'No workflows assigned to you as owner'}</td></tr>`; return; }
+  tbody.innerHTML=workflows.map(w=>{
+    const runs=w.total_runs||0,succ=w.successful_runs||0,errs=w.error_runs||0,rate=pct(succ,runs);
+    return `<tr onclick="openModal('${w.workflow_id}')">
+      <td><div class="wf-name">${w.workflow_name}</div>${w.documentation_link?`<a class="wf-link" href="${w.documentation_link}" target="_blank" onclick="event.stopPropagation()">📄 Docs</a>`:''}</td>
+      <td class="mono" style="color:var(--text2)">${w['Workflow Owner']||'—'}</td>
+      <td>${w.is_active?`<span class="badge active"><span class="badge-dot"></span>Active</span>`:`<span class="badge inactive">Inactive</span>`}</td>
+      <td class="mono">${runs.toLocaleString()}</td>
+      <td><div style="display:flex;gap:6px;align-items:center;font-family:'DM Mono',monospace;font-size:12px"><span style="color:var(--green)">${succ.toLocaleString()}</span><span style="color:var(--text3)">/</span><span style="color:var(--red)">${errs.toLocaleString()}</span></div><div class="progress-bar"><div class="progress-fill ${rate>=80?'green':'red'}" style="width:${rate}%"></div></div></td>
+      <td class="mono">${w.node_count||'—'}</td>
+      <td class="mono" style="color:var(--text3);font-size:12px">${fmt(w.last_execution_at)}</td>
+      <td>${runs===0?`<span class="badge info">No data</span>`:rate>=90?`<span class="badge success"><span class="badge-dot"></span>${rate}%</span>`:`<span class="badge error"><span class="badge-dot"></span>${rate}%</span>`}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderErrors(errors) {
+  document.getElementById('errorCount').textContent=`${errors.length} error${errors.length!==1?'s':''}`;
+  const tbody=document.getElementById('errorsTableBody');
+  if (!errors.length) { tbody.innerHTML=`<tr><td colspan="5" class="empty-state"><div class="empty-icon">✅</div>No errors — all workflows healthy!</td></tr>`; return; }
+  tbody.innerHTML=errors.map(e=>`<tr>
+    <td class="wf-name">${e.workflows?.workflow_name||e.workflow_id||'—'}</td>
+    <td><span class="badge error">${e.error_node||'—'}</span></td>
+    <td class="mono" style="color:var(--text3)">${e.error_type||'—'}</td>
+    <td style="max-width:300px;color:var(--text2);font-size:12px" data-tooltip="${e.error_message||''}">${trunc(e.error_message,60)}</td>
+    <td class="mono" style="color:var(--text3);font-size:12px">${fmt(e.occurred_at)}</td>
+  </tr>`).join('');
+}
+
+// ── MODAL ──
+async function openModal(workflowId) {
+  const {data:wf}=await sb.from('workflows').select('*').eq('workflow_id',workflowId).single();
+  if (!wf) return;
+  const {data:errs}=await sb.from('workflow_errors').select('*').eq('workflow_id',workflowId).order('occurred_at',{ascending:false}).limit(20);
+  const runs=wf.total_runs||0,succ=wf.successful_runs||0,errs2=wf.error_runs||0,rate=pct(succ,runs);
+  document.getElementById('modalTitle').textContent=wf.workflow_name;
+  document.getElementById('modalId').textContent=`ID: ${wf.workflow_id}  ·  Owner: ${wf['Workflow Owner']||'—'}`;
+  document.getElementById('modalBody').innerHTML=`
+    <div class="modal-stats">
+      <div class="modal-stat"><div class="modal-stat-label">Total Runs</div><div class="modal-stat-value">${runs.toLocaleString()}</div></div>
+      <div class="modal-stat"><div class="modal-stat-label">Successful</div><div class="modal-stat-value green">${succ.toLocaleString()}</div></div>
+      <div class="modal-stat"><div class="modal-stat-label">Errors</div><div class="modal-stat-value red">${errs2.toLocaleString()}</div></div>
+      <div class="modal-stat"><div class="modal-stat-label">Success Rate</div><div class="modal-stat-value ${rate>=80?'green':'red'}">${rate}%</div></div>
+    </div>
+    <div class="modal-section-title">Details</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="meta-key">Status</div><div class="meta-val">${wf.is_active?'🟢 Active':'⚫ Inactive'}</div></div>
+      <div class="meta-item"><div class="meta-key">Owner</div><div class="meta-val">${wf['Workflow Owner']||'—'}</div></div>
+      <div class="meta-item"><div class="meta-key">Nodes</div><div class="meta-val">${wf.node_count||'—'}</div></div>
+      <div class="meta-item"><div class="meta-key">Last Run</div><div class="meta-val">${fmtFull(wf.last_execution_at)}</div></div>
+      <div class="meta-item"><div class="meta-key">Last Success</div><div class="meta-val">${fmtFull(wf.last_success_at)}</div></div>
+      <div class="meta-item"><div class="meta-key">Last Error</div><div class="meta-val">${fmtFull(wf.last_error_at)}</div></div>
+      <div class="meta-item"><div class="meta-key">Created</div><div class="meta-val">${fmtFull(wf.created_at)}</div></div>
+      <div class="meta-item"><div class="meta-key">Updated</div><div class="meta-val">${fmtFull(wf.updated_at)}</div></div>
+      ${wf.description?`<div class="meta-item" style="grid-column:1/-1"><div class="meta-key">Description</div><div class="meta-val">${wf.description}</div></div>`:''}
+      ${wf.documentation_link?`<div class="meta-item"><div class="meta-key">Docs</div><div class="meta-val"><a href="${wf.documentation_link}" target="_blank">📄 Open Docs</a></div></div>`:''}
+      ${wf.workflow_json_link?`<div class="meta-item"><div class="meta-key">JSON File</div><div class="meta-val"><a href="${wf.workflow_json_link}" target="_blank">📦 Download</a></div></div>`:''}
+    </div>
+    <div class="section-divider"></div>
+    <div class="modal-section-title">Recent Errors (${(errs||[]).length})</div>
+    ${!(errs&&errs.length)?`<div class="empty-state"><div class="empty-icon">✅</div>No errors for this workflow</div>`:
+      errs.map(e=>`<div class="error-item"><div class="error-item-header"><span class="error-node-lbl">${e.error_node||'Unknown node'}</span><span class="error-time">${fmtFull(e.occurred_at)}</span></div><div class="error-msg">${e.error_message||'No message'}</div>${e.error_type?`<div class="error-type-lbl">${e.error_type}</div>`:''}</div>`).join('')}
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal(e) { if(e.target===document.getElementById('modalOverlay')) closeModalDirect(); }
+function closeModalDirect() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+// ── COUNTDOWN ──
+function resetCountdown() {
+  clearInterval(countdownInterval);
+  let remaining=REFRESH_SEC;
+  const fill=document.getElementById('countdownFill');
+  fill.style.width='100%';
+  countdownInterval=setInterval(()=>{
+    remaining--;
+    fill.style.width=`${(remaining/REFRESH_SEC)*100}%`;
+    if(remaining<=0){clearInterval(countdownInterval);loadAll();}
+  },1000);
+}
+
+// ── INIT: restore session ──
+(async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(session?.user) await bootApp(session.user);
+})();
+</script>
+</body>
+</html>
