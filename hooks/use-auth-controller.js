@@ -81,9 +81,8 @@ export function useAuthController() {
     });
   }
 
-  const bootUser = useEffectEvent(async (user) => {
+  const loadProfile = useEffectEvent(async (user) => {
     const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-    setCurrentUser(user);
     setCurrentProfile(data || fallbackProfile(user));
   });
 
@@ -94,7 +93,7 @@ export function useAuthController() {
       try {
         const { data } = await supabase.auth.getSession();
         if (!active) return;
-        if (data.session?.user) await bootUser(data.session.user);
+        setCurrentUser(data.session?.user ?? null);
       } finally {
         if (active) setBooting(false);
       }
@@ -105,21 +104,42 @@ export function useAuthController() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        void bootUser(session.user);
-        return;
-      }
-
       if (!active) return;
-      setCurrentUser(null);
-      setCurrentProfile(null);
+      setCurrentUser(session?.user ?? null);
+
+      if (!session?.user) {
+        setCurrentProfile(null);
+      }
     });
 
     return () => {
       active = false;
       subscription.unsubscribe();
     };
-  }, [bootUser, supabase]);
+  }, [supabase]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function syncProfile() {
+      if (!currentUser) {
+        setCurrentProfile(null);
+        return;
+      }
+
+      await loadProfile(currentUser);
+
+      if (!active) {
+        return;
+      }
+    }
+
+    void syncProfile();
+
+    return () => {
+      active = false;
+    };
+  }, [currentUser, loadProfile]);
 
   useEffect(() => {
     if (resendRemaining <= 0) return undefined;
@@ -147,7 +167,7 @@ export function useAuthController() {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      await bootUser(data.user);
+      setCurrentUser(data.user);
     } catch (error) {
       setAlert("signIn", error.message || "Sign in failed. Check your credentials.");
     } finally {
