@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { buildWorkflowMetrics } from "@/lib/dashboard";
+import { buildWorkflowMetrics, getWorkflowVisitLink } from "@/lib/dashboard";
 import { formatFullDate } from "@/lib/format";
 
 function CloseIcon() {
@@ -39,6 +39,7 @@ export function WorkflowModal({ dashboard }) {
   }
 
   const metrics = buildWorkflowMetrics(workflow);
+  const visitLink = getWorkflowVisitLink(workflow);
 
   return (
     <div
@@ -140,6 +141,16 @@ export function WorkflowModal({ dashboard }) {
                 <div className="meta-val">
                   <a href={workflow.workflow_json_link} rel="noreferrer" target="_blank">
                     Download
+                  </a>
+                </div>
+              </div>
+            ) : null}
+            {visitLink ? (
+              <div className="meta-item">
+                <div className="meta-key">Visit Workflow</div>
+                <div className="meta-val">
+                  <a href={visitLink} rel="noreferrer" target="_blank">
+                    Open workflow
                   </a>
                 </div>
               </div>

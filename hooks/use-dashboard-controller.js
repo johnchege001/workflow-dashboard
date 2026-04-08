@@ -2,7 +2,6 @@
 
 import { useEffect, useEffectEvent, useState } from "react";
 
-import { REFRESH_SECONDS } from "@/lib/constants";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function useDashboardController({ currentUser, currentProfile, isAdmin }) {
@@ -12,13 +11,10 @@ export function useDashboardController({ currentUser, currentProfile, isAdmin })
   const [errors, setErrors] = useState([]);
   const [trendErrors, setTrendErrors] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState("\u2014");
-  const [countdownPercent, setCountdownPercent] = useState(100);
   const [loadError, setLoadError] = useState("");
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const [modalErrors, setModalErrors] = useState([]);
   const [modalLoading, setModalLoading] = useState(false);
-  const [lastLoadedAt, setLastLoadedAt] = useState(null);
 
   const loadAll = useEffectEvent(async () => {
     if (!currentUser || !currentProfile || refreshing) {
@@ -50,7 +46,7 @@ export function useDashboardController({ currentUser, currentProfile, isAdmin })
         .from("workflow_errors")
         .select("*, workflows(workflow_name)")
         .order("occurred_at", { ascending: false })
-        .limit(50);
+        .limit(200);
 
       if (!isAdmin && workflowIds.length > 0) {
         errorQuery = errorQuery.in("workflow_id", workflowIds);
@@ -80,21 +76,11 @@ export function useDashboardController({ currentUser, currentProfile, isAdmin })
       setErrors(errorData || []);
       setTrendErrors(trendData || []);
       setLoadError("");
-      setLastUpdated(
-        `Updated ${new Date().toLocaleTimeString("en-GB", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        })}`,
-      );
     } catch (error) {
       console.error(error);
       setLoadError(error.message || "Failed to load data.");
-      setLastUpdated("Error loading data");
     } finally {
       setRefreshing(false);
-      setLastLoadedAt(Date.now());
-      setCountdownPercent(100);
     }
   });
 
@@ -130,13 +116,10 @@ export function useDashboardController({ currentUser, currentProfile, isAdmin })
       setErrors([]);
       setTrendErrors([]);
       setRefreshing(false);
-      setLastUpdated("\u2014");
-      setCountdownPercent(100);
       setLoadError("");
       setSelectedWorkflow(null);
       setModalErrors([]);
       setModalLoading(false);
-      setLastLoadedAt(null);
       return;
     }
 
@@ -151,26 +134,6 @@ export function useDashboardController({ currentUser, currentProfile, isAdmin })
     loadAll,
   ]);
 
-  useEffect(() => {
-    if (!currentUser || !lastLoadedAt) {
-      return undefined;
-    }
-
-    const timer = window.setInterval(() => {
-      const elapsedSeconds = Math.floor((Date.now() - lastLoadedAt) / 1000);
-      const remaining = Math.max(REFRESH_SECONDS - elapsedSeconds, 0);
-      setCountdownPercent((remaining / REFRESH_SECONDS) * 100);
-
-      if (remaining <= 0) {
-        void loadAll();
-      }
-    }, 1000);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [currentUser, lastLoadedAt, loadAll]);
-
   function closeWorkflow() {
     setSelectedWorkflow(null);
     setModalErrors([]);
@@ -178,9 +141,7 @@ export function useDashboardController({ currentUser, currentProfile, isAdmin })
   }
 
   return {
-    countdownPercent,
     errors,
-    lastUpdated,
     loadError,
     modalErrors,
     modalLoading,

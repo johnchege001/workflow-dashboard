@@ -1,52 +1,88 @@
-import { ErrorTrendCard } from "@/components/dashboard/error-trend-card";
-import { ErrorsTable } from "@/components/dashboard/errors-table";
+"use client";
+
+import { useMemo, useState } from "react";
+
 import { AppHeader } from "@/components/dashboard/app-header";
-import { HealthCard } from "@/components/dashboard/health-card";
-import { StatsRow } from "@/components/dashboard/stats-row";
+import { ExecutionsPanel } from "@/components/dashboard/executions-panel";
+import { HomePanel } from "@/components/dashboard/home-panel";
+import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { WorkflowsTable } from "@/components/dashboard/workflows-table";
-import { buildDashboardStats, buildHealthSummary, buildTrendSeries } from "@/lib/dashboard";
+import {
+  buildDashboardStats,
+  buildExecutionEntries,
+  buildHealthSummary,
+  buildTrendSeries,
+} from "@/lib/dashboard";
 
 export function DashboardView({ auth, dashboard }) {
-  const summary = buildDashboardStats(dashboard.workflows, dashboard.trendErrors);
-  const health = buildHealthSummary(dashboard.workflows);
-  const trend = buildTrendSeries(dashboard.trendErrors);
+  const [activeSection, setActiveSection] = useState("home");
+
+  const summary = useMemo(
+    () => buildDashboardStats(dashboard.workflows, dashboard.trendErrors),
+    [dashboard.trendErrors, dashboard.workflows],
+  );
+  const health = useMemo(() => buildHealthSummary(dashboard.workflows), [dashboard.workflows]);
+  const trend = useMemo(() => buildTrendSeries(dashboard.trendErrors), [dashboard.trendErrors]);
+  const executionEntries = useMemo(
+    () => buildExecutionEntries(dashboard.workflows, dashboard.errors),
+    [dashboard.errors, dashboard.workflows],
+  );
+  const recentExecutions = executionEntries.slice(0, 5);
+
+  const navCounts = {
+    home: recentExecutions.length,
+    workflows: dashboard.workflows.length,
+    executions: executionEntries.length,
+  };
 
   return (
     <div className="app-screen visible">
-      <div className="countdown-bar">
-        <div className="countdown-fill" style={{ width: `${dashboard.countdownPercent}%` }} />
-      </div>
+      <div className="app-shell">
+        <SidebarNav activeSection={activeSection} counts={navCounts} onSelectSection={setActiveSection} />
 
-      <AppHeader
-        currentProfile={auth.currentProfile}
-        currentUser={auth.currentUser}
-        lastUpdated={dashboard.lastUpdated}
-        onRefresh={dashboard.loadAll}
-        onSignOut={() => {
-          void auth.signOut();
-        }}
-        refreshing={dashboard.refreshing}
-      />
+        <div className="workspace-shell">
+          <AppHeader
+            activeSection={activeSection}
+            currentProfile={auth.currentProfile}
+            currentUser={auth.currentUser}
+            onSignOut={() => {
+              void auth.signOut();
+            }}
+          />
 
-      <main className="main">
-        {!auth.isAdmin ? (
-          <div className="owner-banner">
-            Showing only workflows where you are listed as the owner. Contact an Admin to update ownership.
-          </div>
-        ) : null}
+          <main className="main">
+            {!auth.isAdmin ? (
+              <div className="owner-banner">
+                Showing only workflows where you are listed as the owner. Contact an Admin to update ownership.
+              </div>
+            ) : null}
 
-        {dashboard.loadError ? <div className="owner-banner owner-banner-error">{dashboard.loadError}</div> : null}
+            {dashboard.loadError ? <div className="owner-banner owner-banner-error">{dashboard.loadError}</div> : null}
 
-        <StatsRow summary={summary} />
+            {activeSection === "home" ? (
+              <HomePanel
+                health={health}
+                onSelectWorkflow={dashboard.openWorkflow}
+                recentExecutions={recentExecutions}
+                summary={summary}
+                trend={trend}
+              />
+            ) : null}
 
-        <div className="grid-2">
-          <HealthCard health={health} />
-          <ErrorTrendCard trend={trend} />
+            {activeSection === "workflows" ? (
+              <WorkflowsTable
+                isAdmin={auth.isAdmin}
+                onSelectWorkflow={dashboard.openWorkflow}
+                workflows={dashboard.workflows}
+              />
+            ) : null}
+
+            {activeSection === "executions" ? (
+              <ExecutionsPanel entries={executionEntries} onSelectWorkflow={dashboard.openWorkflow} />
+            ) : null}
+          </main>
         </div>
-
-        <WorkflowsTable isAdmin={auth.isAdmin} onSelectWorkflow={dashboard.openWorkflow} workflows={dashboard.workflows} />
-        <ErrorsTable errors={dashboard.errors} />
-      </main>
+      </div>
     </div>
   );
 }

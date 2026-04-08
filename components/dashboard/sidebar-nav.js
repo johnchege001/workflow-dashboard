@@ -1,0 +1,89 @@
+"use client";
+
+function HomeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 11.5 12 4l9 7.5" />
+      <path d="M5 10.5V20h14v-9.5" />
+    </svg>
+  );
+}
+
+function WorkflowIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="7" height="7" rx="1.5" />
+      <rect x="14" y="4" width="7" height="7" rx="1.5" />
+      <rect x="14" y="13" width="7" height="7" rx="1.5" />
+      <path d="M10 7.5h4" />
+      <path d="M17.5 11v2" />
+    </svg>
+  );
+}
+
+function ExecutionIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19h16" />
+      <path d="M7 15 10.5 11.5 13 14l4-5" />
+      <path d="m15 9 2-.5L16.5 6" />
+    </svg>
+  );
+}
+
+const NAV_ITEMS = [
+  {
+    id: "home",
+    label: "Home",
+    description: "Overview and recent execution activity",
+    Icon: HomeIcon,
+  },
+  {
+    id: "workflows",
+    label: "Workflows",
+    description: "Workflow details, health, and external links",
+    Icon: WorkflowIcon,
+  },
+  {
+    id: "executions",
+    label: "Executions",
+    description: "Outcome history filtered by success or error",
+    Icon: ExecutionIcon,
+  },
+];
+
+export function SidebarNav({ activeSection, counts, onSelectSection }) {
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-brand">
+        <div className="logo sidebar-logo">
+          <WorkflowIcon />
+        </div>
+        <div>
+          <div className="sidebar-title">Workflow Dashboard</div>
+          <div className="sidebar-subtitle">Outsourcelab / Operations</div>
+        </div>
+      </div>
+
+      <nav className="sidebar-nav" aria-label="Dashboard sections">
+        {NAV_ITEMS.map(({ id, label, description, Icon }) => (
+          <button
+            key={id}
+            className={`sidebar-link ${activeSection === id ? "active" : ""}`}
+            onClick={() => onSelectSection(id)}
+            type="button"
+          >
+            <span className="sidebar-link-icon">
+              <Icon />
+            </span>
+            <span className="sidebar-link-copy">
+              <span className="sidebar-link-label">{label}</span>
+              <span className="sidebar-link-description">{description}</span>
+            </span>
+            <span className="sidebar-link-count">{counts[id]}</span>
+          </button>
+        ))}
+      </nav>
+    </aside>
+  );
+}

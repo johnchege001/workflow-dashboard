@@ -1,0 +1,64 @@
+import { ErrorTrendCard } from "@/components/dashboard/error-trend-card";
+import { HealthCard } from "@/components/dashboard/health-card";
+import { StatsRow } from "@/components/dashboard/stats-row";
+import { formatFullDate, truncateText } from "@/lib/format";
+
+function statusLabel(status) {
+  return status === "success" ? "Successful" : "Error";
+}
+
+export function HomePanel({ onSelectWorkflow, recentExecutions, summary, health, trend }) {
+  return (
+    <>
+      <StatsRow summary={summary} />
+
+      <div className="grid-2">
+        <HealthCard health={health} />
+        <ErrorTrendCard trend={trend} />
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Recent Executions</div>
+          <span className="card-badge">
+            {recentExecutions.length} of 5 shown
+          </span>
+        </div>
+        <div className="card-body">
+          {recentExecutions.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">{"\u2699"}</div>
+              No execution activity available yet.
+            </div>
+          ) : (
+            <div className="execution-list">
+              {recentExecutions.map((entry) => (
+                <div key={entry.id} className="execution-list-item">
+                  <div className="execution-list-head">
+                    <div>
+                      <div className="wf-name">{entry.workflowName}</div>
+                      <div className="execution-list-meta">{formatFullDate(entry.occurredAt)}</div>
+                    </div>
+                    <span className={`badge ${entry.status}`}>
+                      <span className="badge-dot" />
+                      {statusLabel(entry.status)}
+                    </span>
+                  </div>
+                  <div className="execution-list-message">{truncateText(entry.message, 140)}</div>
+                  <div className="execution-list-footer">
+                    <span className="mono muted-cell">{entry.type}</span>
+                    {entry.workflowId ? (
+                      <button className="btn-inline" onClick={() => onSelectWorkflow(entry.workflowId)} type="button">
+                        Open workflow
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}

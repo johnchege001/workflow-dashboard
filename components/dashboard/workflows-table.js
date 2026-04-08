@@ -1,4 +1,4 @@
-import { buildWorkflowMetrics } from "@/lib/dashboard";
+import { buildWorkflowMetrics, getWorkflowVisitLink } from "@/lib/dashboard";
 import { formatRelativeDate } from "@/lib/format";
 
 export function WorkflowsTable({ isAdmin, onSelectWorkflow, workflows }) {
@@ -22,12 +22,13 @@ export function WorkflowsTable({ isAdmin, onSelectWorkflow, workflows }) {
               <th>Nodes</th>
               <th>Last Run</th>
               <th>Health</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {workflows.length === 0 ? (
               <tr>
-                <td className="empty-state" colSpan="8">
+                <td className="empty-state" colSpan="9">
                   <div className="empty-icon">{"\u2699"}</div>
                   {isAdmin ? "No workflows found" : "No workflows assigned to you as owner"}
                 </td>
@@ -37,9 +38,14 @@ export function WorkflowsTable({ isAdmin, onSelectWorkflow, workflows }) {
                 const metrics = buildWorkflowMetrics(workflow);
                 const badgeClass =
                   metrics.runs === 0 ? "info" : metrics.successRate >= 90 ? "success" : "error";
+                const visitLink = getWorkflowVisitLink(workflow);
 
                 return (
-                  <tr key={workflow.workflow_id} onClick={() => onSelectWorkflow(workflow.workflow_id)}>
+                  <tr
+                    key={workflow.workflow_id}
+                    className="clickable-row"
+                    onClick={() => onSelectWorkflow(workflow.workflow_id)}
+                  >
                     <td>
                       <div className="wf-name">{workflow.workflow_name}</div>
                       {workflow.documentation_link ? (
@@ -90,6 +96,31 @@ export function WorkflowsTable({ isAdmin, onSelectWorkflow, workflows }) {
                           {metrics.successRate}%
                         </span>
                       )}
+                    </td>
+                    <td>
+                      <div className="table-actions">
+                        <button
+                          className="btn-inline"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onSelectWorkflow(workflow.workflow_id);
+                          }}
+                          type="button"
+                        >
+                          Details
+                        </button>
+                        {visitLink ? (
+                          <a
+                            className="btn-inline"
+                            href={visitLink}
+                            onClick={(event) => event.stopPropagation()}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            Visit
+                          </a>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 );
