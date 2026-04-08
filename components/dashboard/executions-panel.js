@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { filterExecutionEntries, getWorkflowVisitLink, sortExecutionEntries } from "@/lib/dashboard";
+import { filterExecutionEntries, getExecutionVisitLink, sortExecutionEntries } from "@/lib/dashboard";
 import { formatFullDate, truncateText } from "@/lib/format";
 
 const FILTERS = [
@@ -80,7 +80,7 @@ export function ExecutionsPanel({ entries, filter, onFilterChange, onSelectWorkf
               </tr>
             ) : (
               visibleEntries.map((entry) => {
-                const visitLink = entry.workflow ? getWorkflowVisitLink(entry.workflow) : "";
+                const visitLink = getExecutionVisitLink(entry);
 
                 return (
                   <tr key={entry.id}>
@@ -111,7 +111,7 @@ export function ExecutionsPanel({ entries, filter, onFilterChange, onSelectWorkf
                         ) : null}
                         {visitLink ? (
                           <a className="btn-inline" href={visitLink} rel="noreferrer" target="_blank">
-                            Visit
+                            Open in n8n
                           </a>
                         ) : null}
                       </div>

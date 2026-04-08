@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { AUTH_SCREENS } from "@/lib/constants";
 import { getPasswordStrength } from "@/lib/format";
 
@@ -61,6 +63,7 @@ function AuthLogo({ icon }) {
 
 export function AuthView({ controller }) {
   const signUpStrength = getPasswordStrength(controller.forms.signUp.password);
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
 
   if (controller.screen === AUTH_SCREENS.SIGN_UP) {
     return (
@@ -232,15 +235,25 @@ export function AuthView({ controller }) {
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="siPassword">Password</label>
-            <input
-              autoComplete="current-password"
-              className="form-input"
-              id="siPassword"
-              onChange={(event) => controller.updateForm("signIn", "password", event.target.value)}
-              placeholder="........"
-              type="password"
-              value={controller.forms.signIn.password}
-            />
+            <div className="password-field">
+              <input
+                autoComplete="current-password"
+                className="form-input password-input"
+                id="siPassword"
+                onChange={(event) => controller.updateForm("signIn", "password", event.target.value)}
+                placeholder="........"
+                type={showSignInPassword ? "text" : "password"}
+                value={controller.forms.signIn.password}
+              />
+              <button
+                aria-label={showSignInPassword ? "Hide password" : "Show password"}
+                className="password-toggle"
+                onClick={() => setShowSignInPassword((current) => !current)}
+                type="button"
+              >
+                {showSignInPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
           <div className="auth-action-row">
             <button className="btn-link" onClick={() => controller.showScreen(AUTH_SCREENS.FORGOT)} type="button">

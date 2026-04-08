@@ -102,7 +102,7 @@ export function WorkflowsTable({ isAdmin, onSelectWorkflow, workflows }) {
                             rel="noreferrer"
                             target="_blank"
                           >
-                            Visit
+                            Open in n8n
                           </a>
                         ) : null}
                       </div>

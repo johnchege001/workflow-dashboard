@@ -155,6 +155,32 @@ a {
   box-shadow: 0 0 0 3px rgba(48, 63, 159, 0.12);
 }
 
+.password-field {
+  position: relative;
+}
+
+.password-input {
+  padding-right: 68px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--blue);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.password-toggle:hover {
+  opacity: 0.8;
+}
+
 .auth-action-row {
   margin-top: -6px;
   margin-bottom: 10px;
