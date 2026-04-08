@@ -1,7 +1,6 @@
 import { ErrorTrendCard } from "@/components/dashboard/error-trend-card";
 import { HealthCard } from "@/components/dashboard/health-card";
 import { StatsRow } from "@/components/dashboard/stats-row";
-import { getExecutionVisitLink } from "@/lib/dashboard";
 import { formatFullDate, truncateText } from "@/lib/format";
 
 function statusLabel(status) {
@@ -31,8 +30,6 @@ export function HomePanel({ onOpenExecutionErrors, recentExecutions, summary, he
           ) : (
             <div className="execution-list">
               {recentExecutions.map((entry) => {
-                const visitLink = getExecutionVisitLink(entry);
-
                 return (
                   <div key={entry.id} className="execution-list-item">
                     <div className="execution-list-head">
@@ -48,11 +45,6 @@ export function HomePanel({ onOpenExecutionErrors, recentExecutions, summary, he
                     <div className="execution-list-message">{truncateText(entry.message, 140)}</div>
                     <div className="execution-list-footer">
                       <span className="mono muted-cell">{entry.type}</span>
-                      {visitLink ? (
-                        <a className="btn-inline" href={visitLink} rel="noreferrer" target="_blank">
-                          Open in n8n
-                        </a>
-                      ) : null}
                     </div>
                   </div>
                 );

@@ -33,6 +33,7 @@ function ChevronIcon({ open }) {
 export function WorkflowModal({ dashboard, onOpenExecutionErrors }) {
   const workflow = dashboard.selectedWorkflow;
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const workflowId = workflow?.workflow_id;
 
   useEffect(() => {
     if (!workflow) {
@@ -51,7 +52,7 @@ export function WorkflowModal({ dashboard, onOpenExecutionErrors }) {
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [dashboard, workflow]);
+  }, [dashboard, workflowId]);
 
   if (!workflow) {
     return null;
@@ -122,8 +123,8 @@ export function WorkflowModal({ dashboard, onOpenExecutionErrors }) {
               <button
                 className="btn-inline"
                 onClick={() => {
-                  dashboard.closeWorkflow();
                   onOpenExecutionErrors();
+                  dashboard.closeWorkflow();
                 }}
                 type="button"
               >

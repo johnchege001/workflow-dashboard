@@ -17,7 +17,6 @@ export function WorkflowsTable({ isAdmin, onSelectWorkflow, workflows }) {
               <th>Workflow</th>
               <th>Status</th>
               <th>Total Runs</th>
-              <th>Success %</th>
               <th>Nodes</th>
               <th>Last Run</th>
               <th>Health</th>
@@ -27,7 +26,7 @@ export function WorkflowsTable({ isAdmin, onSelectWorkflow, workflows }) {
           <tbody>
             {workflows.length === 0 ? (
               <tr>
-                <td className="empty-state" colSpan="8">
+                <td className="empty-state" colSpan="7">
                   {isAdmin ? "No workflows found" : "No workflows assigned to you as owner"}
                 </td>
               </tr>
@@ -69,7 +68,6 @@ export function WorkflowsTable({ isAdmin, onSelectWorkflow, workflows }) {
                       )}
                     </td>
                     <td className="mono">{metrics.runs.toLocaleString()}</td>
-                    <td className="mono">{metrics.runs === 0 ? "\u2014" : `${metrics.successRate}%`}</td>
                     <td className="mono">{workflow.node_count || "\u2014"}</td>
                     <td className="mono muted-cell">{formatRelativeDate(workflow.last_execution_at)}</td>
                     <td>
