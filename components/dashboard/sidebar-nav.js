@@ -1,5 +1,7 @@
 "use client";
 
+import { getAvatarInitial, getRoleClass } from "@/lib/format";
+
 function HomeIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -35,24 +37,35 @@ const NAV_ITEMS = [
   {
     id: "home",
     label: "Home",
-    description: "Overview and recent execution activity",
     Icon: HomeIcon,
   },
   {
     id: "workflows",
     label: "Workflows",
-    description: "Workflow details, health, and external links",
     Icon: WorkflowIcon,
   },
   {
     id: "executions",
     label: "Executions",
-    description: "Outcome history filtered by success or error",
     Icon: ExecutionIcon,
   },
 ];
 
-export function SidebarNav({ activeSection, counts, onSelectSection }) {
+function LogoutIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="m16 17 5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
+  );
+}
+
+export function SidebarNav({ activeSection, counts, currentProfile, currentUser, onSelectSection, onSignOut }) {
+  const name = currentProfile?.full_name || currentUser?.email?.split("@")[0] || "User";
+  const role = currentProfile?.role || "developer";
+  const avatarInitial = getAvatarInitial(name, currentUser?.email);
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -66,7 +79,7 @@ export function SidebarNav({ activeSection, counts, onSelectSection }) {
       </div>
 
       <nav className="sidebar-nav" aria-label="Dashboard sections">
-        {NAV_ITEMS.map(({ id, label, description, Icon }) => (
+        {NAV_ITEMS.map(({ id, label, Icon }) => (
           <button
             key={id}
             className={`sidebar-link ${activeSection === id ? "active" : ""}`}
@@ -78,12 +91,26 @@ export function SidebarNav({ activeSection, counts, onSelectSection }) {
             </span>
             <span className="sidebar-link-copy">
               <span className="sidebar-link-label">{label}</span>
-              <span className="sidebar-link-description">{description}</span>
             </span>
             <span className="sidebar-link-count">{counts[id]}</span>
           </button>
         ))}
       </nav>
+
+      <div className="sidebar-profile">
+        <div className="sidebar-profile-head">
+          <div className="user-avatar sidebar-avatar">{avatarInitial}</div>
+          <div className="sidebar-profile-copy">
+            <div className="sidebar-profile-name">{name}</div>
+            <div className="sidebar-profile-role">{role}</div>
+          </div>
+          <span className={`role-badge ${getRoleClass(role)}`}>{role.toUpperCase()}</span>
+        </div>
+        <button className="sidebar-signout" onClick={onSignOut} type="button">
+          <LogoutIcon />
+          Sign out
+        </button>
+      </div>
     </aside>
   );
 }

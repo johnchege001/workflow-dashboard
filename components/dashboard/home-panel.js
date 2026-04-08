@@ -20,15 +20,12 @@ export function HomePanel({ onSelectWorkflow, recentExecutions, summary, health,
       <div className="card">
         <div className="card-header">
           <div className="card-title">Recent Executions</div>
-          <span className="card-badge">
-            {recentExecutions.length} of 5 shown
-          </span>
+          <span className="card-badge">{recentExecutions.length}</span>
         </div>
         <div className="card-body">
           {recentExecutions.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">{"\u2699"}</div>
-              No execution activity available yet.
+              No recent activity
             </div>
           ) : (
             <div className="execution-list">

@@ -38,23 +38,22 @@ export function DashboardView({ auth, dashboard }) {
   return (
     <div className="app-screen visible">
       <div className="app-shell">
-        <SidebarNav activeSection={activeSection} counts={navCounts} onSelectSection={setActiveSection} />
-
+        <SidebarNav
+          activeSection={activeSection}
+          counts={navCounts}
+          currentProfile={auth.currentProfile}
+          currentUser={auth.currentUser}
+          onSelectSection={setActiveSection}
+          onSignOut={() => {
+            void auth.signOut();
+          }}
+        />
         <div className="workspace-shell">
-          <AppHeader
-            activeSection={activeSection}
-            currentProfile={auth.currentProfile}
-            currentUser={auth.currentUser}
-            onSignOut={() => {
-              void auth.signOut();
-            }}
-          />
+          <AppHeader activeSection={activeSection} />
 
           <main className="main">
             {!auth.isAdmin ? (
-              <div className="owner-banner">
-                Showing only workflows where you are listed as the owner. Contact an Admin to update ownership.
-              </div>
+              <div className="owner-banner">Owner scope</div>
             ) : null}
 
             {dashboard.loadError ? <div className="owner-banner owner-banner-error">{dashboard.loadError}</div> : null}

@@ -34,10 +34,7 @@ export function ExecutionsPanel({ entries, onSelectWorkflow }) {
   return (
     <div className="card">
       <div className="card-header card-header-stack">
-        <div>
-          <div className="card-title">Execution Activity</div>
-          <div className="card-subtitle">Browse recorded execution outcomes and focus on success or error events.</div>
-        </div>
+        <div className="card-title">Execution Activity</div>
         <div className="table-controls">
           <div className="segmented-control" role="tablist" aria-label="Execution outcome filter">
             {FILTERS.map((item) => (
@@ -79,8 +76,7 @@ export function ExecutionsPanel({ entries, onSelectWorkflow }) {
             {visibleEntries.length === 0 ? (
               <tr>
                 <td className="empty-state" colSpan="6">
-                  <div className="empty-icon">{"\u2713"}</div>
-                  No execution entries match this filter.
+                  No matching entries
                 </td>
               </tr>
             ) : (
