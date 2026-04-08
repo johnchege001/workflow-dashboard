@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { AuthView } from "@/components/auth/auth-view";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { WorkflowModal } from "@/components/dashboard/workflow-modal";
@@ -13,6 +15,8 @@ export function DashboardClient() {
     currentProfile: auth.currentProfile,
     isAdmin: auth.isAdmin,
   });
+  const [activeSection, setActiveSection] = useState("home");
+  const [executionFilter, setExecutionFilter] = useState("all");
 
   if (!auth.currentUser) {
     return <AuthView controller={auth} />;
@@ -20,8 +24,25 @@ export function DashboardClient() {
 
   return (
     <>
-      <DashboardView auth={auth} dashboard={dashboard} />
-      <WorkflowModal dashboard={dashboard} />
+      <DashboardView
+        activeSection={activeSection}
+        auth={auth}
+        dashboard={dashboard}
+        executionFilter={executionFilter}
+        onOpenExecutionErrors={() => {
+          setExecutionFilter("error");
+          setActiveSection("executions");
+        }}
+        onSetActiveSection={setActiveSection}
+        onSetExecutionFilter={setExecutionFilter}
+      />
+      <WorkflowModal
+        dashboard={dashboard}
+        onOpenExecutionErrors={() => {
+          setExecutionFilter("error");
+          setActiveSection("executions");
+        }}
+      />
     </>
   );
 }

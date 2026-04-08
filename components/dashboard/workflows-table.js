@@ -15,10 +15,9 @@ export function WorkflowsTable({ isAdmin, onSelectWorkflow, workflows }) {
           <thead>
             <tr>
               <th>Workflow</th>
-              <th>Owner</th>
               <th>Status</th>
               <th>Total Runs</th>
-              <th>Success / Error</th>
+              <th>Success %</th>
               <th>Nodes</th>
               <th>Last Run</th>
               <th>Health</th>
@@ -28,8 +27,7 @@ export function WorkflowsTable({ isAdmin, onSelectWorkflow, workflows }) {
           <tbody>
             {workflows.length === 0 ? (
               <tr>
-                <td className="empty-state" colSpan="9">
-                  <div className="empty-icon">{"\u2699"}</div>
+                <td className="empty-state" colSpan="8">
                   {isAdmin ? "No workflows found" : "No workflows assigned to you as owner"}
                 </td>
               </tr>
@@ -60,7 +58,6 @@ export function WorkflowsTable({ isAdmin, onSelectWorkflow, workflows }) {
                         </a>
                       ) : null}
                     </td>
-                    <td className="mono muted-cell">{workflow["Workflow Owner"] || "\u2014"}</td>
                     <td>
                       {workflow.is_active ? (
                         <span className="badge active">
@@ -72,19 +69,7 @@ export function WorkflowsTable({ isAdmin, onSelectWorkflow, workflows }) {
                       )}
                     </td>
                     <td className="mono">{metrics.runs.toLocaleString()}</td>
-                    <td>
-                      <div className="run-split">
-                        <span className="run-success">{metrics.successfulRuns.toLocaleString()}</span>
-                        <span className="run-divider">/</span>
-                        <span className="run-error">{metrics.errorRuns.toLocaleString()}</span>
-                      </div>
-                      <div className="progress-bar">
-                        <div
-                          className={`progress-fill ${metrics.successRate >= 80 ? "green" : "red"}`}
-                          style={{ width: `${metrics.successRate}%` }}
-                        />
-                      </div>
-                    </td>
+                    <td className="mono">{metrics.runs === 0 ? "\u2014" : `${metrics.successRate}%`}</td>
                     <td className="mono">{workflow.node_count || "\u2014"}</td>
                     <td className="mono muted-cell">{formatRelativeDate(workflow.last_execution_at)}</td>
                     <td>

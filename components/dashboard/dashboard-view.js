@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { AppHeader } from "@/components/dashboard/app-header";
 import { ExecutionsPanel } from "@/components/dashboard/executions-panel";
@@ -14,9 +14,15 @@ import {
   buildTrendSeries,
 } from "@/lib/dashboard";
 
-export function DashboardView({ auth, dashboard }) {
-  const [activeSection, setActiveSection] = useState("home");
-
+export function DashboardView({
+  activeSection,
+  auth,
+  dashboard,
+  executionFilter,
+  onOpenExecutionErrors,
+  onSetActiveSection,
+  onSetExecutionFilter,
+}) {
   const summary = useMemo(
     () => buildDashboardStats(dashboard.workflows, dashboard.trendErrors),
     [dashboard.trendErrors, dashboard.workflows],
@@ -43,7 +49,7 @@ export function DashboardView({ auth, dashboard }) {
           counts={navCounts}
           currentProfile={auth.currentProfile}
           currentUser={auth.currentUser}
-          onSelectSection={setActiveSection}
+          onSelectSection={onSetActiveSection}
           onSignOut={() => {
             void auth.signOut();
           }}
@@ -61,7 +67,7 @@ export function DashboardView({ auth, dashboard }) {
             {activeSection === "home" ? (
               <HomePanel
                 health={health}
-                onSelectWorkflow={dashboard.openWorkflow}
+                onOpenExecutionErrors={onOpenExecutionErrors}
                 recentExecutions={recentExecutions}
                 summary={summary}
                 trend={trend}
@@ -77,7 +83,12 @@ export function DashboardView({ auth, dashboard }) {
             ) : null}
 
             {activeSection === "executions" ? (
-              <ExecutionsPanel entries={executionEntries} onSelectWorkflow={dashboard.openWorkflow} />
+              <ExecutionsPanel
+                entries={executionEntries}
+                filter={executionFilter}
+                onFilterChange={onSetExecutionFilter}
+                onSelectWorkflow={dashboard.openWorkflow}
+              />
             ) : null}
           </main>
         </div>

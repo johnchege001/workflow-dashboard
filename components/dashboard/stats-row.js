@@ -1,4 +1,4 @@
-export function StatsRow({ summary }) {
+export function StatsRow({ onOpenExecutionErrors, summary }) {
   return (
     <div className="stats-row">
       <div className="stat-card">
@@ -21,11 +21,11 @@ export function StatsRow({ summary }) {
         <div className="stat-value">{summary.errorRuns.toLocaleString()}</div>
         <div className="stat-sub">all-time</div>
       </div>
-      <div className="stat-card amber">
+      <button className="stat-card amber stat-card-button" onClick={onOpenExecutionErrors} type="button">
         <div className="stat-label">24h Errors</div>
         <div className="stat-value">{summary.recentErrors}</div>
         <div className="stat-sub">latest</div>
-      </div>
+      </button>
     </div>
   );
 }

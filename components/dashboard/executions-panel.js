@@ -22,8 +22,7 @@ function statusLabel(status) {
   return status === "success" ? "Successful" : "Error";
 }
 
-export function ExecutionsPanel({ entries, onSelectWorkflow }) {
-  const [filter, setFilter] = useState("all");
+export function ExecutionsPanel({ entries, filter, onFilterChange, onSelectWorkflow }) {
   const [sortBy, setSortBy] = useState("newest");
 
   const visibleEntries = useMemo(() => {
@@ -41,7 +40,7 @@ export function ExecutionsPanel({ entries, onSelectWorkflow }) {
               <button
                 key={item.id}
                 className={`segmented-control-button ${filter === item.id ? "active" : ""}`}
-                onClick={() => setFilter(item.id)}
+                onClick={() => onFilterChange(item.id)}
                 type="button"
               >
                 {item.label}

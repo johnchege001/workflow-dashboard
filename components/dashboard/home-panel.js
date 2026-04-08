@@ -1,16 +1,17 @@
 import { ErrorTrendCard } from "@/components/dashboard/error-trend-card";
 import { HealthCard } from "@/components/dashboard/health-card";
 import { StatsRow } from "@/components/dashboard/stats-row";
+import { getWorkflowVisitLink } from "@/lib/dashboard";
 import { formatFullDate, truncateText } from "@/lib/format";
 
 function statusLabel(status) {
   return status === "success" ? "Successful" : "Error";
 }
 
-export function HomePanel({ onSelectWorkflow, recentExecutions, summary, health, trend }) {
+export function HomePanel({ onOpenExecutionErrors, recentExecutions, summary, health, trend }) {
   return (
     <>
-      <StatsRow summary={summary} />
+      <StatsRow onOpenExecutionErrors={onOpenExecutionErrors} summary={summary} />
 
       <div className="grid-2">
         <HealthCard health={health} />
@@ -29,8 +30,11 @@ export function HomePanel({ onSelectWorkflow, recentExecutions, summary, health,
             </div>
           ) : (
             <div className="execution-list">
-              {recentExecutions.map((entry) => (
-                <div key={entry.id} className="execution-list-item">
+              {recentExecutions.map((entry) => {
+                const visitLink = entry.workflow ? getWorkflowVisitLink(entry.workflow) : "";
+
+                return (
+                  <div key={entry.id} className="execution-list-item">
                   <div className="execution-list-head">
                     <div>
                       <div className="wf-name">{entry.workflowName}</div>
@@ -44,14 +48,15 @@ export function HomePanel({ onSelectWorkflow, recentExecutions, summary, health,
                   <div className="execution-list-message">{truncateText(entry.message, 140)}</div>
                   <div className="execution-list-footer">
                     <span className="mono muted-cell">{entry.type}</span>
-                    {entry.workflowId ? (
-                      <button className="btn-inline" onClick={() => onSelectWorkflow(entry.workflowId)} type="button">
-                        Open workflow
-                      </button>
+                    {visitLink ? (
+                      <a className="btn-inline" href={visitLink} rel="noreferrer" target="_blank">
+                        Open in n8n
+                      </a>
                     ) : null}
                   </div>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
