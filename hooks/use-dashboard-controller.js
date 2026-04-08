@@ -2,6 +2,7 @@
 
 import { useEffect, useEffectEvent, useState } from "react";
 
+import { REFRESH_SECONDS } from "@/lib/constants";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function useDashboardController({ currentUser, currentProfile, isAdmin }) {
@@ -133,6 +134,20 @@ export function useDashboardController({ currentUser, currentProfile, isAdmin })
     isAdmin,
     loadAll,
   ]);
+
+  useEffect(() => {
+    if (!currentUser || !currentProfile) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      void loadAll();
+    }, REFRESH_SECONDS * 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [currentProfile, currentUser, loadAll]);
 
   function closeWorkflow() {
     setSelectedWorkflow(null);
